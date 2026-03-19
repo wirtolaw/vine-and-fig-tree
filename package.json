@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://peiru.github.io/vine-and-fig-tree/",
+  "homepage": "https://wirtolaw.github.io/vine-and-fig-tree/",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
