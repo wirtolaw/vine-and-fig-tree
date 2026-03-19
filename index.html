@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0e0c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/vine-and-fig-tree/manifest.json" />
+    <link rel="apple-touch-icon" href="/vine-and-fig-tree/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/vine-and-fig-tree/favicon.svg" />
+    <title>Vine and Fig Tree</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/vine-and-fig-tree/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>
