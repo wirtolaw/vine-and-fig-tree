@@ -6,8 +6,9 @@ import {
   fetchKisses, updateKisses,
   fetchStones,
   fetchHabits, checkInHabit, uncheckHabit,
+  fetchQuotes,
 } from '../utils/supabase'
-import type { MemoryRow, HabitRow } from '../utils/supabase'
+import type { MemoryRow, HabitRow, QuoteRow } from '../utils/supabase'
 
 // Map app habit keys to DB category names
 const HABIT_KEY_TO_DB: Record<string, string> = {
@@ -24,6 +25,14 @@ function toAppKey(dbCat: string): string {
 export default function HomePage() {
   const dayCount = getDayCount()
   const today = getToday()
+
+  // --- Random Quote ---
+  const [quote, setQuote] = useState<QuoteRow | null>(null)
+  useEffect(() => {
+    fetchQuotes()
+      .then((qs) => { if (qs.length > 0) setQuote(qs[Math.floor(Math.random() * qs.length)]) })
+      .catch(() => {})
+  }, [])
 
   // --- Kisses ---
   const [kissCount, setKissCount] = useState<number>(() => {
@@ -96,6 +105,31 @@ export default function HomePage() {
           since March 11, 2026
         </div>
       </div>
+
+      {/* Random Quote */}
+      {quote && (
+        <div style={{
+          textAlign: 'center',
+          marginBottom: 24,
+          padding: '16px 20px',
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius)',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: 15,
+            fontStyle: 'italic',
+            color: 'var(--text)',
+            lineHeight: 1.6,
+            marginBottom: 8,
+          }}>
+            {'\u201C'}{quote.text}{'\u201D'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {'\u2014'} {quote.author}{quote.source ? `, ${quote.source}` : ''}
+          </div>
+        </div>
+      )}
 
       {/* Kiss Counter */}
       <div className="card" style={{ textAlign: 'center' }}>

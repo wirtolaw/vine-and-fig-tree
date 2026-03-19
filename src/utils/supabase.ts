@@ -93,6 +93,45 @@ export interface TodoRow {
   created_at: string
 }
 
+export interface QuoteRow {
+  id: number
+  text: string
+  author: string
+  source: string
+  created_at: string
+}
+
+export interface HabitLogRow {
+  id: number
+  date: string
+  category: string
+  content: string
+  author: string | null
+  created_at: string
+}
+
+// --- Quotes ---
+
+export async function fetchQuotes(): Promise<QuoteRow[]> {
+  return supabaseFetch<QuoteRow[]>('/rest/v1/quotes?select=*')
+}
+
+// --- Habit Logs ---
+
+export async function fetchHabitLogs(category: string): Promise<HabitLogRow[]> {
+  return supabaseFetch<HabitLogRow[]>(
+    `/rest/v1/habit_logs?category=eq.${encodeURIComponent(category)}&order=date.desc`,
+  )
+}
+
+export async function addHabitLog(row: { date: string; category: string; content: string; author?: string }): Promise<HabitLogRow[]> {
+  return supabaseFetch<HabitLogRow[]>('/rest/v1/habit_logs', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify(row),
+  })
+}
+
 // --- Stones (memories where type = \u7231\u7684\u8BB0\u5F55) ---
 
 export async function fetchStones(): Promise<MemoryRow[]> {
@@ -140,7 +179,7 @@ export async function deleteMilestone(id: number): Promise<void> {
 // --- Moments ---
 
 export async function fetchMoments(): Promise<MomentRow[]> {
-  return supabaseFetch<MomentRow[]>('/rest/v1/moments?order=created_at.desc')
+  return supabaseFetch<MomentRow[]>('/rest/v1/moments?source=neq.telegram-auto&order=created_at.desc')
 }
 
 export async function addMoment(row: { date: string; text: string; source?: string; author?: string }): Promise<MomentRow[]> {

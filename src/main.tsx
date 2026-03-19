@@ -12,6 +12,7 @@ import MailboxPage from './pages/records/MailboxPage'
 import PrivatePage from './pages/records/PrivatePage'
 import TodoPage from './pages/records/TodoPage'
 import HabitsPage from './pages/HabitsPage'
+import HabitDetailPage from './pages/HabitDetailPage'
 import CalendarPage from './pages/CalendarPage'
 
 createRoot(document.getElementById('root')!).render(
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="todo" element={<TodoPage />} />
           </Route>
           <Route path="habits" element={<HabitsPage />} />
+          <Route path="habits/:key" element={<HabitDetailPage />} />
           <Route path="calendar" element={<CalendarPage />} />
         </Route>
       </Routes>
