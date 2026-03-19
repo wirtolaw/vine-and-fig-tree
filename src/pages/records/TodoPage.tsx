@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useSupabase } from '../../hooks/useSupabase'
 import { fetchTodos, toggleTodo } from '../../utils/supabase'
 import type { TodoRow } from '../../utils/supabase'
@@ -14,13 +14,23 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function TodoPage() {
   const fetcher = useCallback(() => fetchTodos(), [])
   const [todos, loading, refresh] = useSupabase<TodoRow[]>('vft_todos_cache', fetcher, [])
+  const [localOverrides, setLocalOverrides] = useState<Record<number, boolean>>({})
 
   const toggle = async (t: TodoRow) => {
+    const newDone = !(localOverrides[t.id] ?? t.done)
+    setLocalOverrides((prev) => ({ ...prev, [t.id]: newDone }))
     try {
-      await toggleTodo(t.id, !t.done)
+      await toggleTodo(t.id, newDone)
       await refresh()
-    } catch { /* offline */ }
+      setLocalOverrides((prev) => {
+        const next = { ...prev }
+        delete next[t.id]
+        return next
+      })
+    } catch { /* offline - keep local override */ }
   }
+
+  const getDone = (t: TodoRow): boolean => localOverrides[t.id] ?? t.done
 
   // Group by category, undone first then done
   const grouped: Record<string, TodoRow[]> = {}
@@ -30,7 +40,7 @@ export default function TodoPage() {
     grouped[cat].push(t)
   }
   for (const cat of Object.keys(grouped)) {
-    grouped[cat].sort((a, b) => Number(a.done) - Number(b.done))
+    grouped[cat].sort((a, b) => Number(getDone(a)) - Number(getDone(b)))
   }
 
   const categories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
@@ -67,14 +77,14 @@ export default function TodoPage() {
             >
               <span style={{
                 fontSize: 16, lineHeight: 1, marginTop: 1, flexShrink: 0,
-                color: t.done ? 'var(--accent)' : 'var(--text-muted)',
+                color: getDone(t) ? 'var(--accent)' : 'var(--text-muted)',
               }}>
-                {t.done ? '\u2611' : '\u2610'}
+                {getDone(t) ? '\u2611' : '\u2610'}
               </span>
               <span style={{
                 fontSize: 14,
-                color: t.done ? 'var(--text-muted)' : 'var(--text)',
-                textDecoration: t.done ? 'line-through' : 'none',
+                color: getDone(t) ? 'var(--text-muted)' : 'var(--text)',
+                textDecoration: getDone(t) ? 'line-through' : 'none',
                 lineHeight: 1.5,
               }}>
                 {t.text}
