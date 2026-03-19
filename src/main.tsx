@@ -12,6 +12,7 @@ import MomentsPage from './pages/records/MomentsPage'
 import StonesPage from './pages/records/StonesPage'
 import MilestonesPage from './pages/records/MilestonesPage'
 import PlaceholderPage from './pages/records/PlaceholderPage'
+import MailboxPage from './pages/records/MailboxPage'
 import HabitsPage from './pages/HabitsPage'
 import CalendarPage from './pages/CalendarPage'
 
@@ -25,7 +26,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="moments" element={<MomentsPage />} />
             <Route path="stones" element={<StonesPage />} />
             <Route path="milestones" element={<MilestonesPage />} />
-            <Route path="mailbox" element={<PlaceholderPage name="Mailbox" />} />
+            <Route path="mailbox" element={<MailboxPage />} />
             <Route path="private" element={<PlaceholderPage name="Private" />} />
             <Route path="todo" element={<PlaceholderPage name="Todo" />} />
           </Route>
