@@ -38,6 +38,7 @@ export default function MomentsPage() {
   }
 
   const remove = async (id: number) => {
+    if (!window.confirm('Delete this moment?')) return
     try {
       await deleteMoment(id)
       await refresh()

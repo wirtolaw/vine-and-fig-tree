@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { formatDate } from '../../utils/date'
 
 function stars(w: number): string {
-  return '\u2B50'.repeat(Math.max(1, Math.min(w, 5)))
+  return '\u{1F347}'.repeat(Math.max(1, Math.min(w, 5)))
 }
 
 export default function StonesPage() {
