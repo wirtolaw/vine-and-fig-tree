@@ -50,6 +50,7 @@ export interface MomentRow {
   date: string
   text: string
   source: string | null
+  author: string | null
   likes: number
   created_at: string
 }
@@ -142,7 +143,7 @@ export async function fetchMoments(): Promise<MomentRow[]> {
   return supabaseFetch<MomentRow[]>('/rest/v1/moments?order=created_at.desc')
 }
 
-export async function addMoment(row: { date: string; text: string; source?: string }): Promise<MomentRow[]> {
+export async function addMoment(row: { date: string; text: string; source?: string; author?: string }): Promise<MomentRow[]> {
   return supabaseFetch<MomentRow[]>('/rest/v1/moments', {
     method: 'POST',
     headers: { 'Prefer': 'return=representation' },

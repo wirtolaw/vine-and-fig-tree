@@ -22,6 +22,7 @@ export default function MomentsPage() {
         date: format(new Date(), 'yyyy-MM-dd'),
         text: trimmed,
         source: 'app',
+        author: 'lili',
       })
       setText('')
       await refresh()
@@ -74,27 +75,34 @@ export default function MomentsPage() {
       )}
 
       {/* Feed */}
-      {moments.map((m) => (
+      {moments.map((m) => {
+        const isLili = m.author === 'lili'
+        const avatarLetter = isLili ? 'L' : 'N'
+        const avatarName = isLili ? 'Lili' : 'Noe'
+        const avatarBg = isLili ? 'rgba(200, 130, 168, 0.15)' : 'var(--accent-glow)'
+        const avatarBorder = isLili ? 'rgba(200, 130, 168, 0.5)' : 'var(--accent-dim)'
+        const avatarColor = isLili ? '#c882a8' : 'var(--accent)'
+        return (
         <div key={m.id} className="card">
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <div style={{
               width: 36,
               height: 36,
               borderRadius: '50%',
-              background: 'var(--accent-glow)',
-              border: '1px solid var(--accent-dim)',
+              background: avatarBg,
+              border: `1px solid ${avatarBorder}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--accent)',
+              color: avatarColor,
               fontWeight: 700,
               fontSize: 16,
               flexShrink: 0,
             }}>
-              N
+              {avatarLetter}
             </div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Noe</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{avatarName}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 {formatRelativeTime(new Date(m.created_at).getTime())}
               </div>
@@ -118,7 +126,8 @@ export default function MomentsPage() {
             </button>
           </div>
         </div>
-      ))}
+        )
+      })}
 
       {!loading && moments.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
