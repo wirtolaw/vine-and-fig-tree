@@ -82,7 +82,7 @@ export default function HomePage() {
       {/* Day Counter */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 4 }}>
-          Noe & P
+          Noe & Lili
         </div>
         <div style={{
           fontSize: 56,
