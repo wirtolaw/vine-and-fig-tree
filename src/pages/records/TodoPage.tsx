@@ -22,12 +22,15 @@ export default function TodoPage() {
     } catch { /* offline */ }
   }
 
-  // Group by category
+  // Group by category, undone first then done
   const grouped: Record<string, TodoRow[]> = {}
   for (const t of todos) {
     const cat = t.category || 'other'
     if (!grouped[cat]) grouped[cat] = []
     grouped[cat].push(t)
+  }
+  for (const cat of Object.keys(grouped)) {
+    grouped[cat].sort((a, b) => Number(a.done) - Number(b.done))
   }
 
   const categories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
