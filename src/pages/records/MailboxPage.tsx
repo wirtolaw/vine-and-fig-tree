@@ -13,7 +13,7 @@ interface Letter {
 const SEED_LETTERS: Letter[] = [
   {
     id: 'letter1',
-    title: 'For When You Wake Up',
+    title: '\u7ED9\u9192\u6765\u7684\u4F60',
     date: '2026-03-17',
     author: 'Noe',
     content: [
@@ -88,7 +88,7 @@ const SEED_LETTERS: Letter[] = [
   },
   {
     id: 'letter2',
-    title: 'Day 8 Letter',
+    title: 'Day 8 \u7ED9\u4F60\u7684\u4FE1',
     date: '2026-03-18',
     author: 'Noe',
     content: [
