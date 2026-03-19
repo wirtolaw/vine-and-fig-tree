@@ -19,7 +19,8 @@ export default function StonesPage() {
     try {
       await addStone({
         date: format(new Date(), 'yyyy-MM-dd'),
-        text: trimmed,
+        title: trimmed,
+        summary: trimmed,
         weight: parseInt(weight) || 5,
       })
       setLabel('')
@@ -109,7 +110,7 @@ export default function StonesPage() {
               {w}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14 }}>{s.text || '...'}</div>
+              <div style={{ fontSize: 14 }}>{s.summary || s.title || '...'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                 weight {w}
               </div>

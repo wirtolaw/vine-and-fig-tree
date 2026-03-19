@@ -37,7 +37,9 @@ async function supabaseFetch<T>(
 export interface MemoryRow {
   id: number
   date: string
-  text: string
+  title: string
+  summary: string
+  detail: string | null
   weight: number | null
   type: string
   created_at: string
@@ -81,7 +83,7 @@ export async function fetchStones(): Promise<MemoryRow[]> {
   )
 }
 
-export async function addStone(row: { date: string; text: string; weight: number }): Promise<MemoryRow[]> {
+export async function addStone(row: { date: string; title: string; summary: string; weight: number }): Promise<MemoryRow[]> {
   return supabaseFetch<MemoryRow[]>('/rest/v1/memories', {
     method: 'POST',
     headers: { 'Prefer': 'return=representation' },
@@ -103,7 +105,7 @@ export async function fetchMilestones(): Promise<MemoryRow[]> {
   )
 }
 
-export async function addMilestone(row: { date: string; text: string }): Promise<MemoryRow[]> {
+export async function addMilestone(row: { date: string; title: string; summary?: string }): Promise<MemoryRow[]> {
   return supabaseFetch<MemoryRow[]>('/rest/v1/memories', {
     method: 'POST',
     headers: { 'Prefer': 'return=representation' },

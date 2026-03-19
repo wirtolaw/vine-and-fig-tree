@@ -17,10 +17,8 @@ export default function MilestonesPage() {
 
   const add = async () => {
     if (!title.trim() || !date) return
-    // Store title + description in the text field separated by newline
-    const text = desc.trim() ? `${title.trim()}\n${desc.trim()}` : title.trim()
     try {
-      await addMilestone({ date, text })
+      await addMilestone({ date, title: title.trim(), summary: desc.trim() || undefined })
       setTitle('')
       setDesc('')
       setDate('')
@@ -36,15 +34,7 @@ export default function MilestonesPage() {
     } catch { /* offline */ }
   }
 
-  // Parse title/description from text field
-  function parseTitle(text: string): string {
-    const idx = text.indexOf('\n')
-    return idx >= 0 ? text.slice(0, idx) : text
-  }
-  function parseDesc(text: string): string {
-    const idx = text.indexOf('\n')
-    return idx >= 0 ? text.slice(idx + 1) : ''
-  }
+  // empty block removed - title and summary are now separate fields
 
   return (
     <div>
@@ -113,8 +103,8 @@ export default function MilestonesPage() {
         }} />
 
         {sorted.map((m) => {
-          const mTitle = parseTitle(m.text)
-          const mDesc = parseDesc(m.text)
+          const mTitle = m.title
+          const mDesc = m.summary || ''
           return (
             <div key={m.id} style={{ position: 'relative', marginBottom: 20 }}>
               {/* Dot */}
