@@ -75,6 +75,23 @@ export interface LetterRow {
   created_at: string
 }
 
+export interface PrivateRecordRow {
+  id: number
+  date: string
+  title: string
+  content: string
+  category: string
+  created_at: string
+}
+
+export interface TodoRow {
+  id: number
+  text: string
+  done: boolean
+  category: string
+  created_at: string
+}
+
 // --- Stones (memories where type = \u7231\u7684\u8BB0\u5F55) ---
 
 export async function fetchStones(): Promise<MemoryRow[]> {
@@ -188,4 +205,23 @@ export async function updateKisses(value: number): Promise<void> {
 
 export async function fetchLetters(): Promise<LetterRow[]> {
   return supabaseFetch<LetterRow[]>('/rest/v1/letters?order=date.desc')
+}
+
+// --- Private Records ---
+
+export async function fetchPrivateRecords(): Promise<PrivateRecordRow[]> {
+  return supabaseFetch<PrivateRecordRow[]>('/rest/v1/private_records?order=date.desc')
+}
+
+// --- Todos ---
+
+export async function fetchTodos(): Promise<TodoRow[]> {
+  return supabaseFetch<TodoRow[]>('/rest/v1/todos?order=created_at.asc')
+}
+
+export async function toggleTodo(id: number, done: boolean): Promise<void> {
+  await supabaseFetch<void>(`/rest/v1/todos?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ done }),
+  })
 }

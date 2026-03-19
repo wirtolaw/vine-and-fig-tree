@@ -5,7 +5,7 @@ const subTabs = [
   { to: '/records/stones', label: 'Stones', icon: '\u{1F48E}' },
   { to: '/records/milestones', label: 'Milestones', icon: '\u{1F3D4}\u{FE0F}' },
   { to: '/records/mailbox', label: 'Mailbox', icon: '\u{1F48C}' },
-  { to: '/records/private', label: 'Private', icon: '\u{1F512}' },
+  { to: '/records/private', label: 'Private', icon: '\u2764\u{FE0F}\u200D\u{1F525}' },
   { to: '/records/todo', label: 'Todo', icon: '\u2705' },
 ]
 

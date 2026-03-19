@@ -3,6 +3,11 @@ import { useSupabase } from '../../hooks/useSupabase'
 import { fetchStones, addStone, deleteStone } from '../../utils/supabase'
 import type { MemoryRow } from '../../utils/supabase'
 import { format } from 'date-fns'
+import { formatDate } from '../../utils/date'
+
+function stars(w: number): string {
+  return '\u2B50'.repeat(Math.max(1, Math.min(w, 5)))
+}
 
 export default function StonesPage() {
   const fetcher = useCallback(() => fetchStones(), [])
@@ -10,6 +15,7 @@ export default function StonesPage() {
   const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
   const [weight, setWeight] = useState('5')
+  const [openId, setOpenId] = useState<number | null>(null)
 
   const sorted = [...stones].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))
 
@@ -55,27 +61,19 @@ export default function StonesPage() {
             onChange={(e) => setLabel(e.target.value)}
             placeholder="What is this stone for..."
             style={{
-              width: '100%',
-              background: 'var(--bg-input)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 12px',
-              fontSize: 14,
-              marginBottom: 8,
+              width: '100%', background: 'var(--bg-input)',
+              borderRadius: 'var(--radius-sm)', padding: '10px 12px',
+              fontSize: 14, marginBottom: 8,
             }}
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Weight:</span>
             <input
-              type="range"
-              min="1"
-              max="10"
-              value={weight}
+              type="range" min="1" max="5" value={weight}
               onChange={(e) => setWeight(e.target.value)}
               style={{ flex: 1, accentColor: 'var(--accent)' }}
             />
-            <span style={{ fontSize: 14, color: 'var(--accent)', width: 20, textAlign: 'center' }}>
-              {weight}
-            </span>
+            <span style={{ fontSize: 14 }}>{stars(parseInt(weight) || 5)}</span>
           </div>
           <button className="btn btn-accent" onClick={add} style={{ width: '100%' }}>
             Add Stone
@@ -91,33 +89,49 @@ export default function StonesPage() {
 
       {sorted.map((s) => {
         const w = s.weight ?? 5
+        const isOpen = openId === s.id
         return (
-          <div key={s.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 24 + w * 3,
-              height: 24 + w * 3,
-              borderRadius: '50%',
-              background: 'var(--accent-glow)',
-              border: '1px solid var(--accent-dim)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 11,
-              color: 'var(--accent)',
-              fontWeight: 600,
-              flexShrink: 0,
-            }}>
-              {w}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14 }}>{s.summary || s.title || '...'}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                weight {w}
+          <div key={s.id} className="card" style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => setOpenId(isOpen ? null : s.id)}
+              style={{ width: '100%', textAlign: 'left', padding: 0, background: 'none' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                    {s.title || '...'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {stars(w)} &middot; {formatDate(s.date)}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 14, color: 'var(--text-muted)', marginLeft: 8,
+                  transform: isOpen ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 0.2s',
+                }}>
+                  {'\u203A'}
+                </span>
               </div>
-            </div>
-            <button onClick={() => remove(s.id)} style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-              {'\u00D7'}
             </button>
+
+            {isOpen && (
+              <div style={{
+                marginTop: 12, paddingTop: 12,
+                borderTop: '1px solid var(--border)',
+                fontSize: 13, lineHeight: 1.7,
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {s.summary || s.title}
+                <div style={{ marginTop: 8 }}>
+                  <button onClick={() => remove(s.id)}
+                    style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    remove
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )
       })}
