@@ -2,9 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
-import { seedIfNeeded } from './utils/seed'
-
-seedIfNeeded()
 import App from './App'
 import HomePage from './pages/HomePage'
 import RecordsPage from './pages/RecordsPage'

@@ -1,14 +1,21 @@
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useCallback } from 'react'
 import { HABIT_CATEGORIES } from '../constants'
 import { getToday } from '../utils/date'
 import { format, subDays } from 'date-fns'
-import type { HabitCheckins } from '../types'
+import { useSupabase } from '../hooks/useSupabase'
+import { fetchHabits, checkInHabit, uncheckHabit } from '../utils/supabase'
+import type { HabitRow } from '../utils/supabase'
 
-function getStreak(days: string[], today: string): number {
+// Map app keys <-> DB categories
+const APP_TO_DB: Record<string, string> = { jobhunt: 'job' }
+const DB_TO_APP: Record<string, string> = { job: 'jobhunt' }
+function toDbCat(key: string): string { return APP_TO_DB[key] || key }
+function toAppKey(cat: string): string { return DB_TO_APP[cat] || cat }
+
+function getStreak(checkedDays: Set<string>, today: string): number {
   let streak = 0
   let d = new Date(today + 'T00:00:00')
-  const sorted = new Set(days)
-  while (sorted.has(format(d, 'yyyy-MM-dd'))) {
+  while (checkedDays.has(format(d, 'yyyy-MM-dd'))) {
     streak++
     d = subDays(d, 1)
   }
@@ -25,18 +32,30 @@ function getLast14(): string[] {
 }
 
 export default function HabitsPage() {
-  const [checkins, setCheckins] = useLocalStorage<HabitCheckins>('vft_habits', {})
+  const fetcher = useCallback(() => fetchHabits(), [])
+  const [habits, , refresh] = useSupabase<HabitRow[]>('vft_habits_cache', fetcher, [])
   const today = getToday()
   const last14 = getLast14()
 
-  const toggle = (key: string, day: string) => {
-    setCheckins((prev: HabitCheckins) => {
-      const days = prev[key] || []
-      if (days.includes(day)) {
-        return { ...prev, [key]: days.filter((d: string) => d !== day) }
+  // Build per-category day sets
+  const categoryDays: Record<string, Set<string>> = {}
+  for (const h of habits) {
+    const appKey = toAppKey(h.category)
+    if (!categoryDays[appKey]) categoryDays[appKey] = new Set()
+    categoryDays[appKey].add(h.date)
+  }
+
+  const toggle = async (key: string, day: string) => {
+    const dbCat = toDbCat(key)
+    const days = categoryDays[key] || new Set()
+    try {
+      if (days.has(day)) {
+        await uncheckHabit(day, dbCat)
+      } else {
+        await checkInHabit({ date: day, category: dbCat })
       }
-      return { ...prev, [key]: [...days, day] }
-    })
+      await refresh()
+    } catch { /* offline */ }
   }
 
   return (
@@ -44,9 +63,9 @@ export default function HabitsPage() {
       <div className="page-title">Habits</div>
 
       {HABIT_CATEGORIES.map((cat) => {
-        const days = checkins[cat.key] || []
+        const days = categoryDays[cat.key] || new Set<string>()
         const streak = getStreak(days, today)
-        const total = days.length
+        const total = days.size
 
         return (
           <div key={cat.key} className="card" style={{ marginBottom: 14 }}>
@@ -64,7 +83,7 @@ export default function HabitsPage() {
             {/* 14-day grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
               {last14.map((day) => {
-                const done = days.includes(day)
+                const done = days.has(day)
                 const isToday = day === today
                 return (
                   <button

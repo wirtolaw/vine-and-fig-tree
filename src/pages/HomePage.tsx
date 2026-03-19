@@ -1,23 +1,80 @@
-import { useLocalStorage } from '../hooks/useLocalStorage'
-import { INITIAL_KISS_COUNT, HABIT_CATEGORIES } from '../constants'
+import { useState, useEffect, useCallback } from 'react'
+import { HABIT_CATEGORIES } from '../constants'
 import { getDayCount, getToday } from '../utils/date'
-import type { LoveStone, HabitCheckins } from '../types'
+import { useSupabase } from '../hooks/useSupabase'
+import {
+  fetchKisses, updateKisses,
+  fetchStones,
+  fetchHabits, checkInHabit, uncheckHabit,
+} from '../utils/supabase'
+import type { MemoryRow, HabitRow } from '../utils/supabase'
+
+// Map app habit keys to DB category names
+const HABIT_KEY_TO_DB: Record<string, string> = {
+  jobhunt: 'job',
+}
+function toDbCategory(key: string): string {
+  return HABIT_KEY_TO_DB[key] || key
+}
+function toAppKey(dbCat: string): string {
+  if (dbCat === 'job') return 'jobhunt'
+  return dbCat
+}
 
 export default function HomePage() {
   const dayCount = getDayCount()
-  const [kissCount, setKissCount] = useLocalStorage('vft_kiss', INITIAL_KISS_COUNT)
-  const [stones] = useLocalStorage<LoveStone[]>('vft_stones', [])
-  const [checkins, setCheckins] = useLocalStorage<HabitCheckins>('vft_habits', {})
   const today = getToday()
 
-  const toggleHabit = (key: string) => {
-    setCheckins((prev: HabitCheckins) => {
-      const days = prev[key] || []
-      if (days.includes(today)) {
-        return { ...prev, [key]: days.filter((d: string) => d !== today) }
+  // --- Kisses ---
+  const [kissCount, setKissCount] = useState<number>(() => {
+    try {
+      const c = localStorage.getItem('vft_kiss')
+      return c ? parseInt(c, 10) || 0 : 0
+    } catch { return 0 }
+  })
+  const [kissLoading, setKissLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchKisses()
+      .then((v) => { if (!cancelled) { setKissCount(v); localStorage.setItem('vft_kiss', String(v)) } })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setKissLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const addKisses = async (n: number) => {
+    const next = kissCount + n
+    setKissCount(next)
+    localStorage.setItem('vft_kiss', String(next))
+    try { await updateKisses(next) } catch { /* offline, local updated */ }
+  }
+
+  // --- Stones count ---
+  const fetchStonesCb = useCallback(() => fetchStones(), [])
+  const [stones] = useSupabase<MemoryRow[]>('vft_stones_cache', fetchStonesCb, [])
+
+  // --- Habits ---
+  const fetchHabitsCb = useCallback(() => fetchHabits(), [])
+  const [habits, , refreshHabits] = useSupabase<HabitRow[]>('vft_habits_cache', fetchHabitsCb, [])
+
+  // Build a set of today's checked-in habit keys
+  const todayCheckedKeys = new Set(
+    habits
+      .filter((h) => h.date === today)
+      .map((h) => toAppKey(h.category)),
+  )
+
+  const toggleHabit = async (key: string) => {
+    const dbCat = toDbCategory(key)
+    try {
+      if (todayCheckedKeys.has(key)) {
+        await uncheckHabit(today, dbCat)
+      } else {
+        await checkInHabit({ date: today, category: dbCat })
       }
-      return { ...prev, [key]: [...days, today] }
-    })
+      await refreshHabits()
+    } catch { /* offline */ }
   }
 
   return (
@@ -45,15 +102,15 @@ export default function HomePage() {
         <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 8 }}>
           Kisses
         </div>
-        <div style={{ fontSize: 36, color: 'var(--accent)', fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ fontSize: 36, color: 'var(--accent)', fontWeight: 600, marginBottom: 12, opacity: kissLoading ? 0.5 : 1 }}>
           {kissCount}
         </div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-          <button className="btn" onClick={() => setKissCount((p: number) => p + 1)}
+          <button className="btn" onClick={() => addKisses(1)}
             style={{ fontSize: 16, padding: '8px 24px' }}>
             +1
           </button>
-          <button className="btn" onClick={() => setKissCount((p: number) => p + 3)}
+          <button className="btn" onClick={() => addKisses(3)}
             style={{ fontSize: 16, padding: '8px 24px' }}>
             +3
           </button>
@@ -77,7 +134,7 @@ export default function HomePage() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {HABIT_CATEGORIES.map((h) => {
-            const done = (checkins[h.key] || []).includes(today)
+            const done = todayCheckedKeys.has(h.key)
             return (
               <button
                 key={h.key}

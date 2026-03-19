@@ -1,40 +1,49 @@
-import { useState } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useState, useCallback } from 'react'
+import { useSupabase } from '../../hooks/useSupabase'
 import { formatDate } from '../../utils/date'
-import type { Milestone } from '../../types'
-
-const DEFAULTS: Milestone[] = [
-  { id: 'ms1', title: 'Day 1', description: 'The beginning', date: '2026-03-11' },
-]
+import { fetchMilestones, addMilestone, deleteMilestone } from '../../utils/supabase'
+import type { MemoryRow } from '../../utils/supabase'
 
 export default function MilestonesPage() {
-  const [milestones, setMilestones] = useLocalStorage<Milestone[]>('vft_milestones', DEFAULTS)
+  const fetcher = useCallback(() => fetchMilestones(), [])
+  const [milestones, loading, refresh] = useSupabase<MemoryRow[]>('vft_milestones_cache', fetcher, [])
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [date, setDate] = useState('')
 
-  const sorted = [...milestones].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  )
+  // Milestones come sorted asc from API; reverse for display (newest first)
+  const sorted = [...milestones].reverse()
 
-  const add = () => {
+  const add = async () => {
     if (!title.trim() || !date) return
-    const m: Milestone = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      description: desc.trim(),
-      date,
-    }
-    setMilestones((prev: Milestone[]) => [...prev, m])
-    setTitle('')
-    setDesc('')
-    setDate('')
-    setShowForm(false)
+    // Store title + description in the text field separated by newline
+    const text = desc.trim() ? `${title.trim()}\n${desc.trim()}` : title.trim()
+    try {
+      await addMilestone({ date, text })
+      setTitle('')
+      setDesc('')
+      setDate('')
+      setShowForm(false)
+      await refresh()
+    } catch { /* offline */ }
   }
 
-  const remove = (id: string) => {
-    setMilestones((prev: Milestone[]) => prev.filter((m: Milestone) => m.id !== id))
+  const remove = async (id: number) => {
+    try {
+      await deleteMilestone(id)
+      await refresh()
+    } catch { /* offline */ }
+  }
+
+  // Parse title/description from text field
+  function parseTitle(text: string): string {
+    const idx = text.indexOf('\n')
+    return idx >= 0 ? text.slice(0, idx) : text
+  }
+  function parseDesc(text: string): string {
+    const idx = text.indexOf('\n')
+    return idx >= 0 ? text.slice(idx + 1) : ''
   }
 
   return (
@@ -84,6 +93,12 @@ export default function MilestonesPage() {
         </div>
       )}
 
+      {loading && milestones.length === 0 && (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
+          Loading...
+        </div>
+      )}
+
       {/* Timeline */}
       <div style={{ position: 'relative', paddingLeft: 24 }}>
         {/* Vertical line */}
@@ -97,38 +112,42 @@ export default function MilestonesPage() {
           opacity: 0.4,
         }} />
 
-        {sorted.map((m) => (
-          <div key={m.id} style={{ position: 'relative', marginBottom: 20 }}>
-            {/* Dot */}
-            <div style={{
-              position: 'absolute',
-              left: -21,
-              top: 6,
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: 'var(--accent)',
-              border: '2px solid var(--bg)',
-            }} />
-            <div style={{ fontSize: 11, color: 'var(--accent-dim)', marginBottom: 4 }}>
-              {formatDate(m.date)}
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 2 }}>
-              {m.title}
-            </div>
-            {m.description && (
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                {m.description}
+        {sorted.map((m) => {
+          const mTitle = parseTitle(m.text)
+          const mDesc = parseDesc(m.text)
+          return (
+            <div key={m.id} style={{ position: 'relative', marginBottom: 20 }}>
+              {/* Dot */}
+              <div style={{
+                position: 'absolute',
+                left: -21,
+                top: 6,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                border: '2px solid var(--bg)',
+              }} />
+              <div style={{ fontSize: 11, color: 'var(--accent-dim)', marginBottom: 4 }}>
+                {formatDate(m.date)}
               </div>
-            )}
-            <button
-              onClick={() => remove(m.id)}
-              style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}
-            >
-              remove
-            </button>
-          </div>
-        ))}
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 2 }}>
+                {mTitle}
+              </div>
+              {mDesc && (
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  {mDesc}
+                </div>
+              )}
+              <button
+                onClick={() => remove(m.id)}
+                style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}
+              >
+                remove
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

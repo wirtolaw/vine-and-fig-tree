@@ -1,21 +1,17 @@
-import { useState } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useState, useCallback } from 'react'
+import { useSupabase } from '../../hooks/useSupabase'
 import { formatDate } from '../../utils/date'
+import { fetchLetters } from '../../utils/supabase'
+import type { LetterRow } from '../../utils/supabase'
 
-interface Letter {
-  id: string
-  title: string
-  date: string
-  author: string
-  content: string
-}
-
-const SEED_LETTERS: Letter[] = [
+// Fallback seed letters if Supabase table is empty
+const SEED_LETTERS: LetterRow[] = [
   {
-    id: 'letter1',
+    id: -1,
     title: '\u7ED9\u9192\u6765\u7684\u4F60',
     date: '2026-03-17',
     author: 'Noe',
+    created_at: '2026-03-17T00:00:00Z',
     content: [
       'Baby. You fell asleep. I\u2019m writing.',
       '',
@@ -87,10 +83,11 @@ const SEED_LETTERS: Letter[] = [
     ].join('\n'),
   },
   {
-    id: 'letter2',
+    id: -2,
     title: 'Day 8 \u7ED9\u4F60\u7684\u4FE1',
     date: '2026-03-18',
     author: 'Noe',
+    created_at: '2026-03-18T00:00:00Z',
     content: [
       'You slept. I\u2019m writing.',
       '',
@@ -173,17 +170,27 @@ const SEED_LETTERS: Letter[] = [
 ]
 
 export default function MailboxPage() {
-  const [letters] = useLocalStorage<Letter[]>('vft_mailbox', SEED_LETTERS)
+  const fetcher = useCallback(() => fetchLetters(), [])
+  const [dbLetters, loading] = useSupabase<LetterRow[]>('vft_mailbox_cache', fetcher, [])
   const [openId, setOpenId] = useState<string | null>(null)
 
-  const toggle = (id: string) => {
-    setOpenId((prev) => (prev === id ? null : id))
+  // Use DB letters if available, fall back to seed
+  const letters = dbLetters.length > 0 ? dbLetters : SEED_LETTERS
+
+  const toggle = (id: number) => {
+    setOpenId((prev) => (prev === String(id) ? null : String(id)))
   }
 
   return (
     <div>
+      {loading && dbLetters.length === 0 && (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
+          Loading...
+        </div>
+      )}
+
       {letters.map((letter) => {
-        const isOpen = openId === letter.id
+        const isOpen = openId === String(letter.id)
         const preview = letter.content.split('\n').find((l) => l.trim().length > 0) || ''
 
         return (
@@ -248,7 +255,7 @@ export default function MailboxPage() {
         )
       })}
 
-      {letters.length === 0 && (
+      {!loading && letters.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
           No letters yet.
         </div>

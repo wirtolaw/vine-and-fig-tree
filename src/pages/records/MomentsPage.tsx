@@ -1,33 +1,46 @@
-import { useState } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useState, useCallback } from 'react'
+import { useSupabase } from '../../hooks/useSupabase'
 import { formatRelativeTime } from '../../utils/date'
-import type { Moment } from '../../types'
+import {
+  fetchMoments, addMoment, likeMoment, deleteMoment,
+} from '../../utils/supabase'
+import type { MomentRow } from '../../utils/supabase'
+import { format } from 'date-fns'
 
 export default function MomentsPage() {
-  const [moments, setMoments] = useLocalStorage<Moment[]>('vft_moments', [])
+  const fetcher = useCallback(() => fetchMoments(), [])
+  const [moments, loading, refresh] = useSupabase<MomentRow[]>('vft_moments_cache', fetcher, [])
   const [text, setText] = useState('')
+  const [posting, setPosting] = useState(false)
 
-  const post = () => {
+  const post = async () => {
     const trimmed = text.trim()
-    if (!trimmed) return
-    const m: Moment = {
-      id: crypto.randomUUID(),
-      text: trimmed,
-      timestamp: Date.now(),
-      likes: 0,
-    }
-    setMoments((prev: Moment[]) => [m, ...prev])
-    setText('')
+    if (!trimmed || posting) return
+    setPosting(true)
+    try {
+      await addMoment({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        text: trimmed,
+        source: 'app',
+      })
+      setText('')
+      await refresh()
+    } catch { /* offline */ }
+    setPosting(false)
   }
 
-  const like = (id: string) => {
-    setMoments((prev: Moment[]) =>
-      prev.map((m: Moment) => m.id === id ? { ...m, likes: m.likes + 1 } : m)
-    )
+  const like = async (m: MomentRow) => {
+    try {
+      await likeMoment(m.id, m.likes)
+      await refresh()
+    } catch { /* offline */ }
   }
 
-  const remove = (id: string) => {
-    setMoments((prev: Moment[]) => prev.filter((m: Moment) => m.id !== id))
+  const remove = async (id: number) => {
+    try {
+      await deleteMoment(id)
+      await refresh()
+    } catch { /* offline */ }
   }
 
   return (
@@ -49,10 +62,16 @@ export default function MomentsPage() {
             marginBottom: 8,
           }}
         />
-        <button className="btn btn-accent" onClick={post} style={{ width: '100%' }}>
-          Post
+        <button className="btn btn-accent" onClick={post} disabled={posting} style={{ width: '100%' }}>
+          {posting ? 'Posting...' : 'Post'}
         </button>
       </div>
+
+      {loading && moments.length === 0 && (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
+          Loading...
+        </div>
+      )}
 
       {/* Feed */}
       {moments.map((m) => (
@@ -77,7 +96,7 @@ export default function MomentsPage() {
             <div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>Noe</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                {formatRelativeTime(m.timestamp)}
+                {formatRelativeTime(new Date(m.created_at).getTime())}
               </div>
             </div>
           </div>
@@ -86,7 +105,7 @@ export default function MomentsPage() {
           </div>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             <button
-              onClick={() => like(m.id)}
+              onClick={() => like(m)}
               style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}
             >
               {'\u2661'} {m.likes > 0 && m.likes}
@@ -101,7 +120,7 @@ export default function MomentsPage() {
         </div>
       ))}
 
-      {moments.length === 0 && (
+      {!loading && moments.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40, fontSize: 14 }}>
           No moments yet. Share your first thought.
         </div>
