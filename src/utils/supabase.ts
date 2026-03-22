@@ -160,6 +160,30 @@ export async function addHabitLog(row: { date: string; category: string; content
   })
 }
 
+// --- Moment Replies ---
+
+export interface MomentReply {
+  id: number
+  moment_id: number
+  author: string
+  text: string
+  created_at: string
+}
+
+export async function fetchMomentReplies(momentId: number): Promise<MomentReply[]> {
+  return supabaseFetch<MomentReply[]>(
+    `/rest/v1/moment_replies?moment_id=eq.${momentId}&order=created_at.asc`,
+  )
+}
+
+export async function addMomentReply(momentId: number, text: string): Promise<MomentReply[]> {
+  return supabaseFetch<MomentReply[]>('/rest/v1/moment_replies', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ moment_id: momentId, author: 'lili', text }),
+  })
+}
+
 // --- Stones (memories where type = \u7231\u7684\u8BB0\u5F55) ---
 
 export async function fetchStones(): Promise<MemoryRow[]> {
