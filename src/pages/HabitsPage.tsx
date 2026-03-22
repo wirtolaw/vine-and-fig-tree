@@ -6,10 +6,11 @@ import { useSupabase } from '../hooks/useSupabase'
 import { fetchHabitCategories, fetchHabitTasksRange } from '../utils/supabase'
 import type { HabitCategory, HabitTask } from '../utils/supabase'
 
-function getLast14(): string[] {
+function get14Days(): string[] {
   const result: string[] = []
   const now = new Date()
-  for (let i = 13; i >= 0; i--) {
+  // 10 days back + today + 3 days forward = 14
+  for (let i = 10; i >= -3; i--) {
     result.push(format(subDays(now, i), 'yyyy-MM-dd'))
   }
   return result
@@ -24,7 +25,7 @@ function getCompletionColor(pct: number): string {
 
 export default function HabitsPage() {
   const today = getToday()
-  const last14 = getLast14()
+  const last14 = get14Days()
   const startDate = last14[0]
   const endDate = last14[last14.length - 1]
 
