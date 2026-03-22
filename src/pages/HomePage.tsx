@@ -7,8 +7,9 @@ import {
   fetchStones,
   fetchHabits, checkInHabit, uncheckHabit,
   fetchQuotes,
+  fetchBacklogTodo, fetchDueReminders, toggleTodo,
 } from '../utils/supabase'
-import type { MemoryRow, HabitRow, QuoteRow } from '../utils/supabase'
+import type { MemoryRow, HabitRow, QuoteRow, TodoRow } from '../utils/supabase'
 
 // Map app habit keys to DB category names
 const HABIT_KEY_TO_DB: Record<string, string> = {
@@ -83,6 +84,41 @@ export default function HomePage() {
         await checkInHabit({ date: today, category: dbCat })
       }
       await refreshHabits()
+    } catch { /* offline */ }
+  }
+
+  // --- Backlog ---
+  const [backlogItem, setBacklogItem] = useState<TodoRow | null>(null)
+  useEffect(() => {
+    fetchBacklogTodo()
+      .then((items) => {
+        if (items.length > 0) {
+          setBacklogItem(items[Math.floor(Math.random() * items.length)])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const markBacklogDone = async () => {
+    if (!backlogItem) return
+    try {
+      await toggleTodo(backlogItem.id, true)
+      setBacklogItem(null)
+    } catch { /* offline */ }
+  }
+
+  // --- Reminders ---
+  const [reminders, setReminders] = useState<TodoRow[]>([])
+  useEffect(() => {
+    fetchDueReminders(today)
+      .then(setReminders)
+      .catch(() => {})
+  }, [today])
+
+  const markReminderDone = async (r: TodoRow) => {
+    try {
+      await toggleTodo(r.id, true)
+      setReminders((prev) => prev.filter((x) => x.id !== r.id))
     } catch { /* offline */ }
   }
 
@@ -199,6 +235,85 @@ export default function HomePage() {
           })}
         </div>
       </div>
+
+      {/* Due Reminders */}
+      {reminders.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 10 }}>
+            Reminders
+          </div>
+          {reminders.map((r) => (
+            <div
+              key={r.id}
+              className="card"
+              style={{
+                marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                border: '1px solid rgba(76, 175, 80, 0.3)',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
+                  {r.text}
+                </div>
+                {r.show_after && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Due: {r.show_after}
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn"
+                onClick={() => markReminderDone(r)}
+                style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
+              >
+                Done
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Backlog suggestion */}
+      {backlogItem && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ color: '#888888', fontSize: 12, marginBottom: 6 }}>
+            From the backlog...
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              padding: '12px 14px',
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <span style={{
+              fontSize: 13,
+              color: '#888888',
+              fontStyle: 'italic',
+              lineHeight: 1.5,
+              flex: 1,
+            }}>
+              {backlogItem.text}
+            </span>
+            <button
+              className="btn"
+              onClick={markBacklogDone}
+              style={{ fontSize: 11, padding: '4px 10px', color: '#888888', flexShrink: 0 }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

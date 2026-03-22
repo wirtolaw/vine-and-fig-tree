@@ -30,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="todo" element={<TodoPage />} />
           </Route>
           <Route path="habits" element={<HabitsPage />} />
-          <Route path="habits/:key" element={<HabitDetailPage />} />
+          <Route path="habits/:categoryId/:date" element={<HabitDetailPage />} />
           <Route path="calendar" element={<CalendarPage />} />
         </Route>
       </Routes>

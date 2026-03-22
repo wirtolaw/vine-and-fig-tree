@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   format, addMonths, subMonths, isSameDay, isToday,
 } from 'date-fns'
 import { START_DATE } from '../constants'
+import { useSupabase } from '../hooks/useSupabase'
+import { fetchHabitCompletionStats } from '../utils/supabase'
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const startDate = new Date(START_DATE + 'T00:00:00')
@@ -14,6 +16,25 @@ export default function CalendarPage() {
   const monthEnd = endOfMonth(current)
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
   const startPad = getDay(monthStart)
+
+  const startStr = format(monthStart, 'yyyy-MM-dd')
+  const endStr = format(monthEnd, 'yyyy-MM-dd')
+
+  const fetchStats = useCallback(
+    () => fetchHabitCompletionStats(startStr, endStr),
+    [startStr, endStr],
+  )
+  const [stats] = useSupabase<{ date: string; total: number; completed: number }[]>(
+    `vft_habit_stats_${startStr}`, fetchStats, [],
+  )
+
+  const completionMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of stats) {
+      map[s.date] = s.total > 0 ? s.completed / s.total : 0
+    }
+    return map
+  }, [stats])
 
   return (
     <div className="page">
@@ -70,6 +91,9 @@ export default function CalendarPage() {
         {days.map((day) => {
           const today = isToday(day)
           const isDay1 = isSameDay(day, startDate)
+          const dayStr = format(day, 'yyyy-MM-dd')
+          const pct = completionMap[dayStr] || 0
+          const habitBg = pct > 0 ? `rgba(76, 175, 80, ${pct * 0.3})` : 'transparent'
           return (
             <div
               key={day.toISOString()}
@@ -82,7 +106,7 @@ export default function CalendarPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 position: 'relative',
-                background: today ? 'var(--accent-glow)' : 'transparent',
+                background: today ? 'var(--accent-glow)' : habitBg,
                 border: today ? '1px solid var(--accent)' : '1px solid transparent',
                 color: today ? 'var(--accent)' : 'var(--text)',
                 fontWeight: today ? 700 : 400,

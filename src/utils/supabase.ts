@@ -90,7 +90,35 @@ export interface TodoRow {
   text: string
   done: boolean
   category: string
+  layer?: string
+  show_after?: string
   created_at: string
+}
+
+export interface HabitCategory {
+  id: number
+  name: string
+  display_name: string
+  icon: string
+  sort_order: number
+  is_active: boolean
+}
+
+export interface HabitTask {
+  id: number
+  category_id: number
+  date: string
+  text: string
+  done: boolean
+  sort_order: number
+}
+
+export interface HabitJournal {
+  id: number
+  category_id: number
+  date: string
+  content: string
+  author: string
 }
 
 export interface QuoteRow {
@@ -256,7 +284,7 @@ export async function fetchPrivateRecords(): Promise<PrivateRecordRow[]> {
 // --- Todos ---
 
 export async function fetchTodos(): Promise<TodoRow[]> {
-  return supabaseFetch<TodoRow[]>('/rest/v1/todos?order=created_at.asc')
+  return supabaseFetch<TodoRow[]>('/rest/v1/todos?layer=eq.project&order=category,done.asc,id.asc')
 }
 
 export async function toggleTodo(id: number, done: boolean): Promise<void> {
@@ -264,4 +292,105 @@ export async function toggleTodo(id: number, done: boolean): Promise<void> {
     method: 'PATCH',
     body: JSON.stringify({ done }),
   })
+}
+
+// --- Habit Categories ---
+
+export async function fetchHabitCategories(): Promise<HabitCategory[]> {
+  return supabaseFetch<HabitCategory[]>(
+    '/rest/v1/habit_categories?is_active=eq.true&order=sort_order.asc',
+  )
+}
+
+// --- Habit Tasks ---
+
+export async function fetchHabitTasks(categoryId: number, date: string): Promise<HabitTask[]> {
+  return supabaseFetch<HabitTask[]>(
+    `/rest/v1/habit_tasks?category_id=eq.${categoryId}&date=eq.${date}&order=sort_order.asc`,
+  )
+}
+
+export async function addHabitTask(row: { category_id: number; date: string; text: string }): Promise<HabitTask[]> {
+  return supabaseFetch<HabitTask[]>('/rest/v1/habit_tasks', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify(row),
+  })
+}
+
+export async function toggleHabitTask(id: number, done: boolean): Promise<void> {
+  await supabaseFetch<void>(`/rest/v1/habit_tasks?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ done }),
+  })
+}
+
+export async function deleteHabitTask(id: number): Promise<void> {
+  await supabaseFetch<void>(`/rest/v1/habit_tasks?id=eq.${id}`, {
+    method: 'DELETE',
+  })
+}
+
+// --- Habit Journals ---
+
+export async function fetchHabitJournal(categoryId: number, date: string): Promise<HabitJournal | null> {
+  const rows = await supabaseFetch<HabitJournal[]>(
+    `/rest/v1/habit_journals?category_id=eq.${categoryId}&date=eq.${date}&author=eq.lili&limit=1`,
+  )
+  return rows.length > 0 ? rows[0] : null
+}
+
+export async function saveHabitJournal(categoryId: number, date: string, content: string): Promise<void> {
+  const existing = await fetchHabitJournal(categoryId, date)
+  if (existing) {
+    await supabaseFetch<void>(`/rest/v1/habit_journals?id=eq.${existing.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    })
+  } else {
+    await supabaseFetch<HabitJournal[]>('/rest/v1/habit_journals', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ category_id: categoryId, date, content, author: 'lili' }),
+    })
+  }
+}
+
+// --- Habit Completion Stats ---
+
+export async function fetchHabitCompletionStats(startDate: string, endDate: string): Promise<{ date: string; total: number; completed: number }[]> {
+  const rows = await supabaseFetch<{ date: string; done: boolean }[]>(
+    `/rest/v1/habit_tasks?date=gte.${startDate}&date=lte.${endDate}&select=date,done`,
+  )
+  const map: Record<string, { total: number; completed: number }> = {}
+  for (const r of rows) {
+    if (!map[r.date]) map[r.date] = { total: 0, completed: 0 }
+    map[r.date].total++
+    if (r.done) map[r.date].completed++
+  }
+  return Object.entries(map).map(([date, v]) => ({ date, ...v }))
+}
+
+// --- Habit Tasks bulk (for HabitsPage 14-day grid) ---
+
+export async function fetchHabitTasksRange(startDate: string, endDate: string): Promise<HabitTask[]> {
+  return supabaseFetch<HabitTask[]>(
+    `/rest/v1/habit_tasks?date=gte.${startDate}&date=lte.${endDate}&select=*`,
+  )
+}
+
+// --- Backlog Todos ---
+
+export async function fetchBacklogTodo(): Promise<TodoRow[]> {
+  return supabaseFetch<TodoRow[]>(
+    '/rest/v1/todos?layer=eq.backlog&done=eq.false',
+  )
+}
+
+// --- Due Reminders ---
+
+export async function fetchDueReminders(today: string): Promise<TodoRow[]> {
+  return supabaseFetch<TodoRow[]>(
+    `/rest/v1/todos?layer=eq.reminder&done=eq.false&show_after=lte.${today}`,
+  )
 }
