@@ -11,6 +11,9 @@ import MilestonesPage from './pages/records/MilestonesPage'
 import MailboxPage from './pages/records/MailboxPage'
 import PrivatePage from './pages/records/PrivatePage'
 import TodoPage from './pages/records/TodoPage'
+import BookshelfPage from './pages/records/BookshelfPage'
+import BookUploadPage from './pages/records/BookUploadPage'
+import BookReaderPage from './pages/records/BookReaderPage'
 import HabitsPage from './pages/HabitsPage'
 import HabitDetailPage from './pages/HabitDetailPage'
 import CalendarPage from './pages/CalendarPage'
@@ -28,6 +31,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="mailbox" element={<MailboxPage />} />
             <Route path="private" element={<PrivatePage />} />
             <Route path="todo" element={<TodoPage />} />
+            <Route path="reading" element={<BookshelfPage />} />
+            <Route path="reading/upload" element={<BookUploadPage />} />
+            <Route path="reading/:bookId/:page" element={<BookReaderPage />} />
           </Route>
           <Route path="habits" element={<HabitsPage />} />
           <Route path="habits/:categoryId/:date" element={<HabitDetailPage />} />

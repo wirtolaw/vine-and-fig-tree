@@ -418,3 +418,88 @@ export async function fetchDueReminders(today: string): Promise<TodoRow[]> {
     `/rest/v1/todos?layer=eq.reminder&done=eq.false&show_after=lte.${today}`,
   )
 }
+
+// --- Reading Room (Books) ---
+
+export interface BookRow { id: number; title: string; author: string; total_paragraphs: number; uploaded_by: string; created_at: string }
+export interface BookParagraphRow { id: number; book_id: number; paragraph_index: number; content: string; page_number: number }
+export interface AnnotationRow { id: number; book_id: number; paragraph_id: number; author: string; content: string; created_at: string }
+export interface ReadingProgressRow { id: number; book_id: number; reader: string; current_paragraph: number; last_read_at: string }
+
+export async function fetchBooks(): Promise<BookRow[]> {
+  return supabaseFetch<BookRow[]>('/rest/v1/books?order=created_at.desc')
+}
+
+export async function createBook(title: string, author: string): Promise<BookRow[]> {
+  return supabaseFetch<BookRow[]>('/rest/v1/books', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ title, author, uploaded_by: 'lili', total_paragraphs: 0 }),
+  })
+}
+
+export async function uploadParagraphs(rows: { book_id: number; paragraph_index: number; content: string; page_number: number }[]): Promise<void> {
+  await supabaseFetch<void>('/rest/v1/book_paragraphs', {
+    method: 'POST',
+    body: JSON.stringify(rows),
+  })
+}
+
+export async function updateBookTotal(id: number, total: number): Promise<void> {
+  await supabaseFetch<void>(`/rest/v1/books?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ total_paragraphs: total }),
+  })
+}
+
+export async function fetchBookPage(bookId: number, pageNumber: number): Promise<BookParagraphRow[]> {
+  return supabaseFetch<BookParagraphRow[]>(
+    `/rest/v1/book_paragraphs?book_id=eq.${bookId}&page_number=eq.${pageNumber}&order=paragraph_index.asc`,
+  )
+}
+
+export async function fetchPageAnnotations(bookId: number, paragraphIds: number[]): Promise<AnnotationRow[]> {
+  if (paragraphIds.length === 0) return []
+  const ids = paragraphIds.join(',')
+  return supabaseFetch<AnnotationRow[]>(
+    `/rest/v1/annotations?book_id=eq.${bookId}&paragraph_id=in.(${ids})&order=created_at.asc`,
+  )
+}
+
+export async function addAnnotation(bookId: number, paragraphId: number, content: string): Promise<AnnotationRow[]> {
+  return supabaseFetch<AnnotationRow[]>('/rest/v1/annotations', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ book_id: bookId, paragraph_id: paragraphId, author: 'lili', content }),
+  })
+}
+
+export async function fetchReadingProgress(bookId: number): Promise<ReadingProgressRow | null> {
+  const rows = await supabaseFetch<ReadingProgressRow[]>(
+    `/rest/v1/reading_progress?book_id=eq.${bookId}&reader=eq.lili&limit=1`,
+  )
+  return rows.length > 0 ? rows[0] : null
+}
+
+export async function updateReadingProgress(bookId: number, currentParagraph: number): Promise<void> {
+  const existing = await fetchReadingProgress(bookId)
+  if (existing) {
+    await supabaseFetch<void>(`/rest/v1/reading_progress?id=eq.${existing.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_paragraph: currentParagraph, last_read_at: new Date().toISOString() }),
+    })
+  } else {
+    await supabaseFetch<ReadingProgressRow[]>('/rest/v1/reading_progress', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ book_id: bookId, reader: 'lili', current_paragraph: currentParagraph, last_read_at: new Date().toISOString() }),
+    })
+  }
+}
+
+export async function fetchBookMaxPage(bookId: number): Promise<number> {
+  const rows = await supabaseFetch<{ page_number: number }[]>(
+    `/rest/v1/book_paragraphs?book_id=eq.${bookId}&select=page_number&order=page_number.desc&limit=1`,
+  )
+  return rows.length > 0 ? rows[0].page_number : 1
+}

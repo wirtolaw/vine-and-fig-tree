@@ -7,6 +7,7 @@ const subTabs = [
   { to: '/records/mailbox', label: 'Mailbox', icon: '\u{1F48C}' },
   { to: '/records/private', label: 'Private', icon: '\u2764\u{FE0F}\u200D\u{1F525}' },
   { to: '/records/todo', label: 'Todo', icon: '\u2705' },
+  { to: '/records/reading', label: 'Reading', icon: '\u{1F4DA}' },
 ]
 
 export default function RecordsPage() {
