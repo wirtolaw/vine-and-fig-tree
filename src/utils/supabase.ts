@@ -308,13 +308,18 @@ export async function fetchPrivateRecords(): Promise<PrivateRecordRow[]> {
 // --- Todos ---
 
 export async function fetchTodos(): Promise<TodoRow[]> {
-  return supabaseFetch<TodoRow[]>('/rest/v1/todos?layer=eq.project&order=category,done.asc,id.asc')
+  // Show: undone + done within 2 days
+  return supabaseFetch<TodoRow[]>(
+    '/rest/v1/todos?layer=eq.project&or=(done.eq.false,completed_at.gt.' +
+    new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() +
+    ')&order=done.asc,category,id.asc'
+  )
 }
 
 export async function toggleTodo(id: number, done: boolean): Promise<void> {
   await supabaseFetch<void>(`/rest/v1/todos?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ done }),
+    body: JSON.stringify({ done, completed_at: done ? new Date().toISOString() : null }),
   })
 }
 
