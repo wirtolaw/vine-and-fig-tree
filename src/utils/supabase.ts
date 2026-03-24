@@ -296,7 +296,21 @@ export async function updateKisses(value: number): Promise<void> {
 // --- Letters ---
 
 export async function fetchLetters(): Promise<LetterRow[]> {
-  return supabaseFetch<LetterRow[]>('/rest/v1/letters?order=date.desc')
+  return supabaseFetch<LetterRow[]>('/rest/v1/letters?order=created_at.desc')
+}
+
+export async function addLetter(title: string, content: string): Promise<LetterRow[]> {
+  return supabaseFetch<LetterRow[]>('/rest/v1/letters', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ title, content, author: 'lili' }),
+  })
+}
+
+export async function deleteLetter(id: number): Promise<void> {
+  await supabaseFetch<void>(`/rest/v1/letters?id=eq.${id}`, {
+    method: 'DELETE',
+  })
 }
 
 // --- Private Records ---
