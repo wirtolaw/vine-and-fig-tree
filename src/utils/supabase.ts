@@ -231,7 +231,24 @@ export async function deleteMilestone(id: number): Promise<void> {
 // --- Moments ---
 
 export async function fetchMoments(): Promise<MomentRow[]> {
-  return supabaseFetch<MomentRow[]>('/rest/v1/moments?source=neq.telegram-auto&order=created_at.desc')
+  return supabaseFetch<MomentRow[]>(
+    '/rest/v1/moments?source=neq.telegram-auto&scheduled_at=lte.' +
+    new Date().toISOString() +
+    '&order=created_at.desc'
+  )
+}
+
+export async function fetchUnreadCount(lastViewedAt: string): Promise<number> {
+  const [moments, replies] = await Promise.all([
+    supabaseFetch<{ id: number }[]>(
+      '/rest/v1/moments?author=eq.noe&scheduled_at=lte.' + new Date().toISOString() +
+      '&created_at=gt.' + lastViewedAt + '&select=id'
+    ),
+    supabaseFetch<{ id: number }[]>(
+      '/rest/v1/moment_replies?author=eq.noe&created_at=gt.' + lastViewedAt + '&select=id'
+    ),
+  ])
+  return moments.length + replies.length
 }
 
 export async function addMoment(row: { date: string; text: string; source?: string; author?: string }): Promise<MomentRow[]> {
