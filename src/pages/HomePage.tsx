@@ -10,22 +10,6 @@ import {
 } from '../utils/supabase'
 import type { MemoryRow, QuoteRow, TodoRow, HabitCategory } from '../utils/supabase'
 
-async function fetchKissCount(): Promise<number> {
-  const res = await fetch(
-    'https://jfoxsolxjefnqvwysdhd.supabase.co/rest/v1/kiss_counter?select=id',
-    {
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impmb3hzb2x4amVmbnF2d3lzZGhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTY0MDUsImV4cCI6MjA4ODkyNDA1fQ.ZYbRPOmftlaeNZlUHLJMbjkUcDurzekdb4CSmc21syU',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impmb3hzb2x4amVmbnF2d3lzZGhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTY0MDUsImV4cCI6MjA4ODkyNDA1fQ.ZYbRPOmftlaeNZlUHLJMbjkUcDurzekdb4CSmc21syU',
-        'Prefer': 'count=exact',
-      },
-    }
-  )
-  const contentRange = res.headers.get('content-range')
-  const total = contentRange ? parseInt(contentRange.split('/')[1] || '0', 10) : 0
-  return total + 892
-}
-
 // --- French songs ---
 interface FrenchSong { id: number; title: string; vocab_coverage_pct: number; status: string }
 
@@ -52,16 +36,6 @@ export default function HomePage() {
     fetchQuotes()
       .then((qs) => { if (qs.length > 0) setQuote(qs[Math.floor(Math.random() * qs.length)]) })
       .catch(() => {})
-  }, [])
-
-  // --- Kisses (from kiss_counter) ---
-  const [kissCount, setKissCount] = useState<number>(0)
-  const [kissLoading, setKissLoading] = useState(true)
-  useEffect(() => {
-    fetchKissCount()
-      .then((v) => setKissCount(v))
-      .catch(() => {})
-      .finally(() => setKissLoading(false))
   }, [])
 
   // --- Stones count ---
@@ -147,16 +121,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-
-      {/* Kiss Counter (read-only) */}
-      <div className="card" style={{ textAlign: 'center' }}>
-        <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 8 }}>
-          Kisses
-        </div>
-        <div style={{ fontSize: 36, color: 'var(--accent)', fontWeight: 600, opacity: kissLoading ? 0.5 : 1 }}>
-          {kissCount}
-        </div>
-      </div>
 
       {/* Stones */}
       <div className="card" style={{ textAlign: 'center' }}>
